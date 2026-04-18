@@ -182,7 +182,29 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173)
 
-### 6. Deploy to Vercel
+### 6. Deploy to GitHub Pages
+
+```bash
+npm run build
+```
+
+1. Push your code to GitHub.
+2. In your repo, open **Settings → Secrets and variables → Actions** and add:
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+   - `VITE_GEMINI_API_KEY`
+   - ⚠️ These `VITE_*` values are exposed in the browser bundle at runtime. Use strict Firebase Security Rules and provider/API key restrictions in Google Cloud/Firebase to protect your project.
+3. Go to **Settings → Pages** and set:
+   - **Source**: **GitHub Actions**
+4. Push to `main` (or `master`) and the workflow `.github/workflows/deploy-pages.yml` will deploy automatically.
+5. Your app will be available at:
+   - `https://<your-username>.github.io/<repo-name>/`
+
+### 7. Deploy to Vercel (optional)
 
 ```bash
 npm install -g vercel
