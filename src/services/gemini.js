@@ -1,12 +1,10 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash'
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-flash-latest'
 
 const MODEL_CANDIDATES = Array.from(new Set([
   GEMINI_MODEL,
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-latest',
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
 ]))
 
 const buildGeminiUrl = (model) =>
