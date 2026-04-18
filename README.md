@@ -197,6 +197,7 @@ npm run build
    - `VITE_FIREBASE_MESSAGING_SENDER_ID`
    - `VITE_FIREBASE_APP_ID`
    - `VITE_GEMINI_API_KEY`
+   - ⚠️ These `VITE_*` values are exposed in the browser bundle at runtime. Use strict Firebase Security Rules and provider/API key restrictions in Google Cloud/Firebase to protect your project.
 3. Go to **Settings → Pages** and set:
    - **Source**: **GitHub Actions**
 4. Push to `main` (or `master`) and the workflow `.github/workflows/deploy-pages.yml` will deploy automatically.
