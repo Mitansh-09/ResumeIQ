@@ -89,6 +89,42 @@ const parseJsonSafely = (raw, contextLabel = 'AI response') => {
   }
 }
 
+const QUESTION_CATEGORIES = new Set(['technical', 'behavioral', 'system_design', 'hr'])
+const QUESTION_DIFFICULTIES = new Set(['easy', 'medium', 'hard'])
+
+const parseInterviewQuestionsWithRepair = async (raw) => {
+  try {
+    return parseJsonSafely(raw, 'Interview questions response')
+  } catch {
+    const repairPrompt = `
+You are a strict JSON repair assistant.
+Convert the following content into VALID JSON only.
+
+Required output shape:
+{
+  "questions": [
+    {
+      "id": "<string>",
+      "question": "<string>",
+      "category": "technical|behavioral|system_design|hr",
+      "difficulty": "easy|medium|hard",
+      "hint": "<string>",
+      "sampleAnswer": "<string>"
+    }
+  ]
+}
+
+Do not include markdown or explanation. Return only JSON.
+
+CONTENT TO REPAIR:
+${raw}
+`
+
+    const repairedRaw = await callGemini(repairPrompt)
+    return parseJsonSafely(repairedRaw, 'Interview questions response')
+  }
+}
+
 // ─── Resume ↔ JD Analysis ─────────────────────────────────────────────────────
 
 export const analyzeResumeVsJD = async (resumeText, jdText, jobTitle = '') => {
@@ -185,14 +221,14 @@ Return ONLY valid JSON:
 Include: 3 technical, 2 behavioral, 1 system design, 1 HR question.
 `
   const raw = await callGemini(prompt)
-  const parsed = parseJsonSafely(raw, 'Interview questions response')
+  const parsed = await parseInterviewQuestionsWithRepair(raw)
 
   const questions = Array.isArray(parsed?.questions)
     ? parsed.questions.map((q, i) => ({
         id: q?.id || `q-${i + 1}`,
         question: q?.question || 'Tell me about a recent project you worked on.',
-        category: q?.category || 'technical',
-        difficulty: q?.difficulty || 'medium',
+        category: QUESTION_CATEGORIES.has(q?.category) ? q.category : 'technical',
+        difficulty: QUESTION_DIFFICULTIES.has(q?.difficulty) ? q.difficulty : 'medium',
         hint: q?.hint || '',
         sampleAnswer: q?.sampleAnswer || '',
       }))
