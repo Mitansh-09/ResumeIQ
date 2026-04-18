@@ -92,6 +92,87 @@ const parseJsonSafely = (raw, contextLabel = 'AI response') => {
 const QUESTION_CATEGORIES = new Set(['technical', 'behavioral', 'system_design', 'hr'])
 const QUESTION_DIFFICULTIES = new Set(['easy', 'medium', 'hard'])
 
+const normalizeQuestion = (q, i) => ({
+  id: q?.id || `q-${i + 1}`,
+  question: q?.question || 'Tell me about a recent project you worked on.',
+  category: QUESTION_CATEGORIES.has(q?.category) ? q.category : 'technical',
+  difficulty: QUESTION_DIFFICULTIES.has(q?.difficulty) ? q.difficulty : 'medium',
+  hint: q?.hint || '',
+  sampleAnswer: q?.sampleAnswer || '',
+})
+
+const buildDefaultQuestions = (jobTitle = 'Software Engineer') => {
+  const role = jobTitle || 'Software Engineer'
+  return [
+    { question: `Walk me through a recent ${role} project you built and your exact contribution.`, category: 'technical', difficulty: 'easy' },
+    { question: 'How would you optimize a slow React component that re-renders too often?', category: 'technical', difficulty: 'medium' },
+    { question: 'How do you structure API error handling and loading states in frontend apps?', category: 'technical', difficulty: 'medium' },
+    { question: 'Tell me about a time you handled conflicting feedback from teammates.', category: 'behavioral', difficulty: 'medium' },
+    { question: 'Describe a situation where you missed a deadline. What did you learn?', category: 'behavioral', difficulty: 'medium' },
+    { question: 'Design a scalable resume analysis workflow for 10k daily users.', category: 'system_design', difficulty: 'hard' },
+    { question: `Why do you want this ${role} role, and why should we hire you?`, category: 'hr', difficulty: 'hard' },
+  ].map((q, i) => normalizeQuestion({ id: `q-${i + 1}`, ...q }, i))
+}
+
+const parseQuestionsFromPlainText = (text) => {
+  // First preference: extract explicit JSON-like "question" fields if present.
+  const fromQuestionFields = []
+  const questionFieldRegex = /"question"\s*:\s*"((?:[^"\\]|\\.)*)"/g
+  let match
+  while ((match = questionFieldRegex.exec(text)) !== null) {
+    const value = match[1]
+      .replace(/\\n/g, ' ')
+      .replace(/\\"/g, '"')
+      .trim()
+    if (value.length > 10) fromQuestionFields.push(value)
+  }
+
+  if (fromQuestionFields.length > 0) {
+    return fromQuestionFields.slice(0, 7).map((q, i) => ({
+      id: `q-${i + 1}`,
+      question: q,
+      category: i < 3 ? 'technical' : i < 5 ? 'behavioral' : i === 5 ? 'system_design' : 'hr',
+      difficulty: i < 2 ? 'easy' : i < 5 ? 'medium' : 'hard',
+      hint: '',
+      sampleAnswer: '',
+    }))
+  }
+
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  const stripped = lines
+    .map((line) => line.replace(/^[-*•\d\s.)]+/, '').trim())
+    .filter((line) => {
+      if (!line || line.length < 15) return false
+      if (/^[\[{]}]?$/.test(line)) return false
+      if (/^"?(id|category|difficulty|hint|sampleAnswer)"?\s*:/.test(line)) return false
+      return /\?$/.test(line) || /^(what|how|why|when|where|which|tell|describe|walk|explain)\b/i.test(line)
+    })
+
+  if (stripped.length === 0) return []
+
+  return stripped.slice(0, 7).map((line, idx) => {
+    const clean = line.trim()
+
+    let category = 'technical'
+    if (idx >= 3 && idx <= 4) category = 'behavioral'
+    if (idx === 5) category = 'system_design'
+    if (idx === 6) category = 'hr'
+
+    return {
+      id: `q-${idx + 1}`,
+      question: clean || 'Tell me about a recent project you worked on.',
+      category,
+      difficulty: idx < 2 ? 'easy' : idx < 5 ? 'medium' : 'hard',
+      hint: '',
+      sampleAnswer: '',
+    }
+  })
+}
+
 const parseInterviewQuestionsWithRepair = async (raw) => {
   try {
     return parseJsonSafely(raw, 'Interview questions response')
@@ -221,24 +302,40 @@ Return ONLY valid JSON:
 Include: 3 technical, 2 behavioral, 1 system design, 1 HR question.
 `
   const raw = await callGemini(prompt)
-  const parsed = await parseInterviewQuestionsWithRepair(raw)
+  let questions = []
 
-  const questions = Array.isArray(parsed?.questions)
-    ? parsed.questions.map((q, i) => ({
-        id: q?.id || `q-${i + 1}`,
-        question: q?.question || 'Tell me about a recent project you worked on.',
-        category: QUESTION_CATEGORIES.has(q?.category) ? q.category : 'technical',
-        difficulty: QUESTION_DIFFICULTIES.has(q?.difficulty) ? q.difficulty : 'medium',
-        hint: q?.hint || '',
-        sampleAnswer: q?.sampleAnswer || '',
-      }))
-    : []
+  try {
+    const parsed = await parseInterviewQuestionsWithRepair(raw)
+    questions = Array.isArray(parsed?.questions)
+      ? parsed.questions.map((q, i) => normalizeQuestion(q, i))
+      : []
+  } catch {
+    // Fallback: if JSON parsing keeps failing, try plain-text extraction.
+    questions = parseQuestionsFromPlainText(raw)
 
-  if (questions.length === 0) {
-    throw new Error('AI returned no interview questions. Please try again.')
+    // Second fallback: ask model for simple text questions and extract lines.
+    if (questions.length === 0) {
+      const textPrompt = `
+Generate exactly 7 interview questions for role: ${jobTitle || 'Software Engineer'}.
+Use this order: 3 technical, 2 behavioral, 1 system design, 1 HR.
+Return plain text only, one question per line, numbered 1 to 7.
+
+JD:
+${jdText}
+
+Resume:
+${resumeText}
+`
+      const textRaw = await callGemini(textPrompt, { expectJson: false })
+      questions = parseQuestionsFromPlainText(textRaw)
+    }
   }
 
-  return { questions }
+  if (questions.length < 3) {
+    questions = buildDefaultQuestions(jobTitle)
+  }
+
+  return { questions: questions.slice(0, 7).map((q, i) => normalizeQuestion(q, i)) }
 }
 
 // ─── Answer Feedback ──────────────────────────────────────────────────────────
