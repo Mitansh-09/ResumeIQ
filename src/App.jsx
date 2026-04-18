@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from './context/AuthContext'
 import { AppProvider } from './context/AppContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        <Analytics />
       </AppProvider>
     </AuthProvider>
   </BrowserRouter>
