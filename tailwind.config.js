@@ -55,10 +55,25 @@ export default {
         },
         crimson: {
           50: '#fff1f2',
+          100: '#ffe4e6',
+          200: '#fecdd3',
           400: '#fb7185',
           500: '#f43f5e',
           600: '#e11d48',
-        }
+          700: '#be123c',
+        },
+        amber: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+        },
+        purple: {
+          50: '#faf5ff',
+          700: '#7e22ce',
+        },
       },
       animation: {
         'fade-up': 'fadeUp 0.5s ease forwards',
