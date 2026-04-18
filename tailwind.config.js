@@ -1,0 +1,95 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'sans-serif'],
+        display: ['Syne', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      colors: {
+        ink: {
+          50: '#f5f4f1',
+          100: '#e8e6df',
+          200: '#d0cdc3',
+          300: '#b0ac9f',
+          400: '#8e8a7a',
+          500: '#716e5f',
+          600: '#5a574a',
+          700: '#48453a',
+          800: '#3c3930',
+          900: '#211f19',
+          950: '#131109',
+        },
+        cobalt: {
+          50: '#eff4ff',
+          100: '#dce6fd',
+          200: '#c0d3fb',
+          300: '#95b5f8',
+          400: '#628df2',
+          500: '#3d66eb',
+          600: '#2748df',
+          700: '#2038cc',
+          800: '#2032a5',
+          900: '#1f2e82',
+          950: '#171e50',
+        },
+        sage: {
+          50: '#f0faf4',
+          100: '#dbf2e4',
+          200: '#b9e5cc',
+          300: '#87d1a9',
+          400: '#50b47f',
+          500: '#2d9661',
+          600: '#1e7a4d',
+          700: '#19623f',
+          800: '#164e33',
+          900: '#13402b',
+        },
+        ember: {
+          50: '#fff7ed',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#ea580c',
+        },
+        crimson: {
+          50: '#fff1f2',
+          400: '#fb7185',
+          500: '#f43f5e',
+          600: '#e11d48',
+        }
+      },
+      animation: {
+        'fade-up': 'fadeUp 0.5s ease forwards',
+        'fade-in': 'fadeIn 0.4s ease forwards',
+        'slide-in': 'slideIn 0.4s ease forwards',
+        'pulse-dot': 'pulseDot 1.5s ease-in-out infinite',
+        'shimmer': 'shimmer 1.8s linear infinite',
+      },
+      keyframes: {
+        fadeUp: {
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateX(-12px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        pulseDot: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.4', transform: 'scale(0.8)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+      },
+    },
+  },
+  plugins: [],
+}
