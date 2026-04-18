@@ -172,6 +172,7 @@ const Analyzer = () => {
       }
 
       dispatch({ type: 'ADD_ANALYSIS', payload: { id: docId, jobTitle: analysisResult.jobTitle, resumeText, jdText, result: analysisResult } })
+      dispatch({ type: 'SET_ACTIVE_ANALYSIS', payload: { id: docId, jobTitle: analysisResult.jobTitle, resumeText, jdText, result: analysisResult } })
       setResult(analysisResult)
       setFailureCount(0)
       setStep('done')
