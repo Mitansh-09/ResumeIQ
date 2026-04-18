@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { AppProvider } from './context/AppContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
@@ -22,7 +22,7 @@ const PageLoader = () => (
 )
 
 const App = () => (
-  <BrowserRouter>
+  <HashRouter>
     <AuthProvider>
       <AppProvider>
         <Suspense fallback={<PageLoader />}>
@@ -55,7 +55,7 @@ const App = () => (
         </Suspense>
       </AppProvider>
     </AuthProvider>
-  </BrowserRouter>
+  </HashRouter>
 )
 
 export default App
