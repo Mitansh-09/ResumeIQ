@@ -36,7 +36,8 @@ const QuestionCard = ({ question, index, onEvaluate }) => {
       const result = await evaluateAnswer(question.question, answer, question.sampleAnswer)
       setFeedback(result)
       onEvaluate?.(question.id, answer, result)
-    } catch {
+    } catch (err) {
+      console.error('Answer evaluation failed:', err)
       setFeedback({ score: null, error: 'An error occurred. Please try again.' })
     } finally {
       setLoading(false)
@@ -139,6 +140,9 @@ const QuestionCard = ({ question, index, onEvaluate }) => {
                 </span>
               </div>
               <div className="p-4 space-y-3">
+                {feedback.error && (
+                  <p className="text-xs text-crimson-600">{feedback.error}</p>
+                )}
                 {feedback.strengths?.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-sage-700 mb-1">What you did well</p>
@@ -184,23 +188,36 @@ const Prep = () => {
   const [sessionId, setSessionId] = useState(null)
   const [answers, setAnswers] = useState({})
   const [failureCount, setFailureCount] = useState(0)
+  const [errorDetail, setErrorDetail] = useState('')
 
   const activeAnalysis = state.activeAnalysis || state.analyses?.[0]
 
+  // FIX 1: Guard against missing jdText/resumeText from Firestore
+  const jdText = activeAnalysis?.jdText || ''
+  const resumeText = activeAnalysis?.resumeText || ''
+  const jobTitle = activeAnalysis?.jobTitle || 'Software Engineer'
+
+  const isMissingContext = !jdText.trim() || !resumeText.trim()
+
   const handleGenerate = async () => {
     if (!activeAnalysis) return
+
+    // FIX 2: Show clear error if resume/JD text missing instead of calling Gemini with empty strings
+    if (isMissingContext) {
+      notify('Resume or JD data is missing. Please run a fresh analysis from the Analyzer page.', 'error')
+      return
+    }
+
     setLoading(true)
+    setErrorDetail('')
+
     try {
-      const result = await generateInterviewQuestions(
-        activeAnalysis.jdText,
-        activeAnalysis.resumeText,
-        activeAnalysis.jobTitle
-      )
+      const result = await generateInterviewQuestions(jdText, resumeText, jobTitle)
       setQuestions(result.questions)
       try {
         const id = await savePrepSession(user.uid, {
           analysisId: activeAnalysis.id,
-          jobTitle: activeAnalysis.jobTitle,
+          jobTitle,
           questions: result.questions,
           answers: {},
         })
@@ -211,7 +228,10 @@ const Prep = () => {
       }
       setFailureCount(0)
       notify('Questions generated!', 'success')
-    } catch {
+    } catch (err) {
+      // FIX 3: Log actual error so it shows in console for debugging
+      console.error('generateInterviewQuestions failed:', err)
+      setErrorDetail(err?.message || '')
       setFailureCount((prev) => {
         const next = prev + 1
         notify(getUserErrorMessage(next), 'error')
@@ -259,10 +279,31 @@ const Prep = () => {
             <h2 className="font-display text-lg font-700 text-ink-900 mb-2">Ready to practice?</h2>
             <p className="text-sm text-ink-400 mb-1 max-w-xs mx-auto">
               We'll generate interview questions based on your{' '}
-              <span className="font-medium text-cobalt-600">{activeAnalysis.jobTitle}</span> analysis.
+              <span className="font-medium text-cobalt-600">{jobTitle}</span> analysis.
             </p>
             <p className="text-xs text-ink-300 mb-6">Technical · Behavioral · System Design · HR</p>
-            <button onClick={handleGenerate} disabled={loading} className="btn-primary mx-auto">
+
+            {/* FIX 4: Show warning if context is missing before they even try */}
+            {isMissingContext && (
+              <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 max-w-xs mx-auto">
+                Resume or JD data is incomplete for this analysis.{' '}
+                <Link to="/analyzer" className="underline font-medium">Run a fresh analysis →</Link>
+              </div>
+            )}
+
+            {/* FIX 5: Show actual error detail in dev-friendly way */}
+            {errorDetail && (
+              <div className="mb-4 px-4 py-3 bg-crimson-50 border border-crimson-200 rounded-xl text-xs text-crimson-600 max-w-xs mx-auto text-left">
+                <p className="font-medium mb-0.5">Error detail:</p>
+                <p className="font-mono break-all">{errorDetail}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleGenerate}
+              disabled={loading || isMissingContext}
+              className="btn-primary mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? <><Spinner size="sm" /> Generating questions...</> : 'Generate questions →'}
             </button>
           </div>
